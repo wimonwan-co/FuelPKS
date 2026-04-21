@@ -6,6 +6,7 @@
     <title>ระบบจัดการน้ำมัน 28.PKS</title>
     <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         body { 
             background-color: #f8f9fa; 
@@ -15,7 +16,8 @@
         }
         .left-panel { background: white; height: 100vh; overflow-y: auto; border-right: 2px solid #e9ecef; padding: 20px; }
         .right-panel { height: 100vh; overflow-y: auto; padding: 20px; }
-        .card-dash { border-top: 4px solid #198754; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card-dash { border-top: 4px solid #198754; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card-lot { border-top: 4px solid #0d6efd; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .form-control[readonly] { background-color: #e9ecef; color: #495057; font-weight: bold; }
     </style>
 </head>
@@ -23,85 +25,93 @@
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-md-5 left-panel">
-            <h4 class="mb-4 text-success fw-bold">ระบบน้ำมัน 28.PKS</h4>
+        <div class="col-md-4 left-panel">
+            <h4 class="mb-4 text-success fw-bold"><i class="bi bi-fuel-pump-fill"></i> ระบบน้ำมัน 28.PKS</h4>
             
             <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="pills-buy-tab" data-bs-toggle="pill" data-bs-target="#pills-buy" type="button" role="tab" aria-controls="pills-buy" aria-selected="true">ซื้อน้ำมัน (In)</button>
+                    <button class="nav-link active" id="pills-buy-tab" data-bs-toggle="pill" data-bs-target="#pills-buy" type="button" role="tab">ซื้อน้ำมัน (In)</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="pills-withdraw-tab" data-bs-toggle="pill" data-bs-target="#pills-withdraw" type="button" role="tab" aria-controls="pills-withdraw" aria-selected="false" onclick="loadAvailableLots()">เบิกน้ำมัน (Out)</button>
+                    <button class="nav-link" id="pills-withdraw-tab" data-bs-toggle="pill" data-bs-target="#pills-withdraw" type="button" role="tab" onclick="loadDashboard()">เบิกน้ำมัน (Out)</button>
                 </li>
             </ul>
 
             <div class="tab-content" id="pills-tabContent">
-                <div class="tab-pane fade show active" id="pills-buy" role="tabpanel" aria-labelledby="pills-buy-tab">
+                <div class="tab-pane fade show active" id="pills-buy" role="tabpanel">
                     <form id="buyForm">
-                        <div class="mb-3"><label>Lot ID (Auto)</label><input type="text" class="form-control" id="b_lotId" readonly></div>
-                        <div class="mb-3"><label>วันที่ซื้อ (วว/ดด/ปป)</label><input type="text" class="form-control" id="b_date" placeholder="เช่น 14/04/69" oninput="generateLotID()"></div>
-                        <div class="mb-3"><label>ปริมาณ (ลิตร)</label><input type="number" class="form-control" id="b_qty" oninput="calBuyTotal()"></div>
-                        <div class="mb-3">
-                            <label>ราคาต่อลิตร</label>
-                            <input type="number" step="0.01" class="form-control" id="b_price" oninput="calBuyTotal()" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
-                        </div>
+                        <div class="mb-2"><label>Lot ID (Auto)</label><input type="text" class="form-control" id="b_lotId" readonly></div>
+                        <div class="mb-2"><label>วันที่ซื้อ</label><input type="date" class="form-control" id="b_date" oninput="generateLotID()"></div>
+                        <div class="mb-2"><label>ปริมาณ (ลิตร)</label><input type="number" class="form-control" id="b_qty" oninput="calBuyTotal()"></div>
+                        <div class="mb-2"><label>ราคาต่อลิตร</label><input type="number" step="0.01" class="form-control" id="b_price" oninput="calBuyTotal()"></div>
                         <div class="mb-3"><label>ยอดสุทธิ</label><input type="text" class="form-control text-primary" id="b_total" readonly></div>
                         <button type="button" class="btn btn-success w-100" onclick="submitData('buy')">บันทึกซื้อน้ำมัน</button>
                     </form>
                 </div>
 
-                <div class="tab-pane fade" id="pills-withdraw" role="tabpanel" aria-labelledby="pills-withdraw-tab">
+                <div class="tab-pane fade" id="pills-withdraw" role="tabpanel">
                     <form id="withdrawForm">
-                        <div class="mb-3">
-                            <label>เลือก LotID ที่มีอยู่</label>
-                            <select class="form-select" id="w_lotId" onchange="autoFillPrice()" required>
-                                <option value="">คลิกเพื่อโหลดรายการ Lot...</option>
-                            </select>
+                        <div class="alert alert-info py-2" style="font-size: 0.85rem;">
+                            <i class="bi bi-info-circle"></i> ระบบจะตัดน้ำมันจาก Lot ที่เก่าที่สุดให้โดยอัตโนมัติ
                         </div>
-                        <div class="mb-3"><label>วันที่เบิก (วว/ดด/ปป)</label><input type="text" class="form-control" id="w_date" placeholder="เช่น 14/04/69"></div>
-                        <div class="mb-3">
+                        <div class="mb-2"><label>วันที่เบิก</label><input type="date" class="form-control" id="w_date"></div>
+                        <div class="mb-2">
                             <label>รายการ</label>
                             <select class="form-select" id="w_item">
                                 <option value="" disabled selected>เลือกรายการ...</option>
                                 <option value="หน้างาน">หน้างาน</option><option value="เติมแท้งค์">เติมแท้งค์</option>
                                 <option value="1645">1645</option><option value="ไททัน">ไททัน</option>
-                                <option value="อีซูซุ">อีซูซุ</option><option value="ป้าหิ๋ม">ป้าหิ๋ม</option><option value="แมคโครส้ม(บริษัท)">แมคโครส้ม(บริษัท)</option><option value="-">-</option>
+                                <option value="อีซูซุ">อีซูซุ</option><option value="ป้าหิ๋ม">ป้าหิ๋ม</option>
+                                <option value="แมคโครส้ม">แมคโครส้ม</option>
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-2">
                             <label>โครงการ</label>
                             <select class="form-select" id="w_project">
                                 <option value="" disabled selected>เลือกโครงการ...</option>
-                                <option value="หนองเอื้อง">หนองเอื้อง</option><option value="โป่งลึก">โป่งลึก</option><option value="1645">1645</option>
-                                <option value="ส่วนตัว">ส่วนตัว</option><option value="รถบริษัท">รถบริษัท</option><option value="ป้าหิ๋ม">ป้าหิ๋ม</option><option value="-">-</option>
+                                <option value="หนองเอื้อง">หนองเอื้อง</option><option value="โป่งลึก">โป่งลึก</option>
+                                <option value="1645">1645</option><option value="รถบริษัท">รถบริษัท</option>
+                                <option value="ป้าหิ๋ม">ป้าหิ๋ม</option><option value="ส่วนตัว">ส่วนตัว</option>
+                                <option value="-">-</option>
                             </select>
                         </div>
-                        <div class="mb-3"><label>ปริมาณ (ลิตร)</label><input type="number" class="form-control" id="w_qty" oninput="calWithdrawTotal()"></div>
-                        <div class="mb-3">
-                            <label>ราคาต่อลิตร (ตาม Lot)</label>
-                            <input type="number" step="0.01" class="form-control" id="w_price" oninput="calWithdrawTotal()" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
-                        </div>
-                        <div class="mb-3"><label>ยอดสุทธิ</label><input type="text" class="form-control text-primary" id="w_total" readonly></div>
+                        <div class="mb-2"><label>ปริมาณที่ต้องการเบิก (ลิตร)</label><input type="number" class="form-control" id="w_qty"></div>
                         <div class="mb-3"><label>หมายเหตุ</label><input type="text" class="form-control" id="w_note"></div>
-                        <button type="button" class="btn btn-primary w-100" onclick="submitData('withdraw')">บันทึกเบิกน้ำมัน</button>
+                        <button type="button" class="btn btn-primary w-100" onclick="submitData('withdraw')">บันทึกการเบิกน้ำมัน</button>
                     </form>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-7 right-panel bg-light">
-            <h3 class="mb-4 fw-bold">ยอดเบิกน้ำมันแยกโครงการ</h3>
+        <div class="col-md-8 right-panel bg-light">
             <div class="card card-dash">
-                <div class="card-body">
-                    <table class="table table-striped">
+                <div class="card-header bg-success text-white">ยอดเบิกน้ำมันแยกโครงการ</div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
                         <thead class="table-dark">
-                            <tr><th>โครงการ</th><th>ลิตรรวม</th><th>ราคาเฉลี่ย</th><th>ยอดรวม (บาท)</th></tr>
+                            <tr><th>โครงการ</th><th>ลิตรรวม</th><th>ยอดรวม (บาท)</th></tr>
                         </thead>
-                        <tbody id="dashboardTable">
-                            <tr><td colspan="4" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+                        <tbody id="projectTable">
+                            <tr><td colspan="3" class="text-center">กำลังโหลด...</td></tr>
                         </tbody>
                     </table>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="loadDashboard()">รีเฟรชข้อมูล</button>
+                </div>
+            </div>
+
+            <div class="card card-lot">
+                <div class="card-header bg-primary text-white d-flex justify-content-between">
+                    <span>สถานะน้ำมันคงเหลือแต่ละ Lot</span>
+                    <button class="btn btn-sm btn-light" onclick="loadDashboard()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-secondary">
+                            <tr><th>Lot ID</th><th>ซื้อเข้า</th><th>คงเหลือ</th><th>ราคา/ลิตร</th><th>สถานะ</th></tr>
+                        </thead>
+                        <tbody id="lotTable">
+                            <tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -111,156 +121,102 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // --- อย่าลืมเปลี่ยนตรงนี้เป็น URL ของ Web App ของคุณ ---
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbz8ICQyG7RjiLYQXg94oQNh1pejInXBQJGK-EbhHvjKkyNWrOADW2EXneCF4x1CviLPRA/exec';
-    let availableLotsData = [];
 
-    // 1. รัน LotID อัตโนมัติ: PKS69ดด-วว
     function generateLotID() {
         const dateStr = document.getElementById('b_date').value;
-        const parts = dateStr.split('/');
-        if (parts.length === 3) {
-            const day = parts[0].padStart(2, '0');
-            const month = parts[1].padStart(2, '0');
-            const yearShort = parts[2];
-            document.getElementById('b_lotId').value = `PKS${yearShort}${month}-${day}`;
+        if (dateStr) {
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear() + 543).slice(-2);
+            document.getElementById('b_lotId').value = `PKS${year}${month}-${day}`;
         }
-    }
-
-    // 2. โหลด LotID มาใส่ Dropdown
-    function loadAvailableLots() {
-        document.getElementById('w_lotId').innerHTML = '<option value="">กำลังโหลดข้อมูล...</option>';
-        fetch(`${scriptUrl}?type=lots`)
-        .then(res => res.json())
-        .then(data => {
-            availableLotsData = data;
-            let select = document.getElementById('w_lotId');
-            select.innerHTML = '<option value="">เลือก LotID...</option>';
-            data.forEach(item => {
-                select.innerHTML += `<option value="${item.id}">${item.id} (ทุน: ${Number(item.price).toFixed(2)})</option>`;
-            });
-        })
-        .catch(err => {
-            console.error(err);
-            document.getElementById('w_lotId').innerHTML = '<option value="">(ยังไม่ได้ใส่ URL หรือดึงข้อมูลไม่ได้)</option>';
-        });
-    }
-
-    // 3. ดึงราคาจาก Lot มาใส่อัตโนมัติ
-    function autoFillPrice() {
-        const selectedId = document.getElementById('w_lotId').value;
-        const found = availableLotsData.find(l => l.id === selectedId);
-        if(found) {
-            document.getElementById('w_price').value = Number(found.price).toFixed(2);
-            calWithdrawTotal();
-        }
-    }
-
-    // 4. จัดรูปแบบตัวเลข (มีลูกน้ำและทศนิยม 2 ตำแหน่ง สำหรับยอดสุทธิ)
-    function formatNumber(num) {
-        return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function calBuyTotal() {
         let q = parseFloat(document.getElementById('b_qty').value) || 0;
         let p = parseFloat(document.getElementById('b_price').value) || 0;
-        let total = q * p;
-        document.getElementById('b_total').value = formatNumber(total);
-        document.getElementById('b_total').dataset.raw = total;
+        document.getElementById('b_total').value = (q * p).toLocaleString();
     }
 
-    function calWithdrawTotal() {
-        let q = parseFloat(document.getElementById('w_qty').value) || 0;
-        let p = parseFloat(document.getElementById('w_price').value) || 0;
-        let total = q * p;
-        document.getElementById('w_total').value = formatNumber(total);
-        document.getElementById('w_total').dataset.raw = total;
+    function loadDashboard() {
+        fetch(`${scriptUrl}?type=dash`)
+        .then(res => res.json())
+        .then(data => {
+            // --- ส่วนที่ 1: เรียงลำดับโครงการตามที่กำหนด ---
+            const myOrder = ["หนองเอื้อง", "โป่งลึก", "1645", "รถบริษัท", "ป้าหิ๋ม", "ส่วนตัว", "-"];
+            
+            data.projects.sort((a, b) => {
+                let indexA = myOrder.indexOf(a.project);
+                let indexB = myOrder.indexOf(b.project);
+                if (indexA === -1) indexA = 99;
+                if (indexB === -1) indexB = 99;
+                return indexA - indexB;
+            });
+
+            let pBody = document.getElementById('projectTable');
+            pBody.innerHTML = '';
+            data.projects.forEach(p => {
+                pBody.innerHTML += `<tr>
+                    <td>${p.project}</td>
+                    <td>${Number(p.qty || 0).toLocaleString()}</td>
+                    <td class="text-success fw-bold">${Number(p.total || 0).toLocaleString()}</td>
+                </tr>`;
+            });
+
+            // --- ส่วนที่ 2: แสดงข้อมูลราย Lot (แก้ปัญหา NaN) ---
+            let lBody = document.getElementById('lotTable');
+            lBody.innerHTML = '';
+            data.lots.forEach(l => {
+                let colorClass = l.balance <= 500 ? 'text-danger fw-bold' : '';
+                let statusBadge = l.balance > 0 ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">หมด</span>';
+                
+                // เช็คว่าราคาเป็นตัวเลขหรือไม่ ถ้าไม่เป็นให้ตั้งค่าเป็น "0.00" ป้องกัน NaN
+                let priceVal = (l.price && !isNaN(l.price)) ? Number(l.price).toFixed(2) : "0.00";
+
+                lBody.innerHTML += `<tr>
+                    <td><small>${l.lotId}</small></td>
+                    <td>${Number(l.buyQty || 0).toLocaleString()}</td>
+                    <td class="${colorClass}">${Number(l.balance || 0).toLocaleString()}</td>
+                    <td>${priceVal}</td>
+                    <td>${statusBadge}</td>
+                </tr>`;
+            });
+        }).catch(err => console.error(err));
     }
 
-    // 5. ส่งข้อมูลบันทึก
     function submitData(actionType) {
         let payload = { action: actionType };
-        let btn = event.target;
-        let originalText = btn.innerText;
-
         if (actionType === 'buy') {
             payload.lotId = document.getElementById('b_lotId').value;
             payload.date = document.getElementById('b_date').value;
             payload.qty = document.getElementById('b_qty').value;
             payload.price = document.getElementById('b_price').value;
-            payload.total = document.getElementById('b_total').dataset.raw || 0;
-            if(!payload.date || !payload.qty) return alert('กรุณาระบุวันที่และปริมาณ');
+            if(!payload.qty || !payload.price) return alert('กรุณากรอกข้อมูลให้ครบ');
         } else {
-            payload.lotId = document.getElementById('w_lotId').value;
             payload.date = document.getElementById('w_date').value;
             payload.item = document.getElementById('w_item').value;
             payload.project = document.getElementById('w_project').value;
             payload.qty = document.getElementById('w_qty').value;
-            payload.price = document.getElementById('w_price').value;
-            payload.total = document.getElementById('w_total').dataset.raw || 0;
             payload.note = document.getElementById('w_note').value;
-            if(!payload.lotId || !payload.qty || !payload.project) return alert('กรุณาเลือกข้อมูลให้ครบ');
+            if(!payload.qty || !payload.project) return alert('กรุณากรอกปริมาณและเลือกโครงการ');
         }
 
-        btn.innerText = "กำลังบันทึก...";
+        const btn = event.target;
         btn.disabled = true;
+        btn.innerText = "กำลังบันทึก...";
 
         fetch(scriptUrl, { method: 'POST', body: JSON.stringify(payload) })
         .then(res => res.json())
-        .then(() => {
-            alert('บันทึกเรียบร้อย!');
+        .then(res => {
+            alert(res.message || 'บันทึกสำเร็จ');
             document.getElementById(actionType + 'Form').reset();
-            btn.innerText = originalText;
-            btn.disabled = false;
             loadDashboard();
         })
-        .catch(err => {
-            alert('เกิดข้อผิดพลาดในการบันทึก');
-            btn.innerText = originalText;
+        .finally(() => {
             btn.disabled = false;
-        });
-    }
-
-// 6. โหลด Dashboard (แบบเรียงลำดับโครงการตามต้องการ และบังคับ 2 ตำแหน่งทุกช่อง)
-    function loadDashboard() {
-        fetch(`${scriptUrl}?type=dash`)
-        .then(res => res.json())
-        .then(data => {
-            let tbody = document.getElementById('dashboardTable');
-            tbody.innerHTML = '';
-            
-            if(data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center">ยังไม่มีข้อมูล</td></tr>';
-                return;
-            }
-
-            // --- กำหนดลำดับที่ต้องการ ---
-            const customOrder = ["หนองเอื้อง", "โป่งลึก", "1645", "รถบริษัท", "ส่วนตัว", "ป้าหิ๋ม"];
-
-            data.sort((a, b) => {
-                let indexA = customOrder.indexOf(a.project);
-                let indexB = customOrder.indexOf(b.project);
-                
-                // ถ้าไม่เจอโครงการในรายการที่กำหนด ให้เอาไปไว้ท้ายสุด
-                if (indexA === -1) indexA = 99;
-                if (indexB === -1) indexB = 99;
-                
-                return indexA - indexB;
-            });
-
-            // แสดงผลเป็นทศนิยม 2 ตำแหน่งทุกช่อง
-            data.forEach(row => {
-                tbody.innerHTML += `<tr>
-                    <td>${row.project}</td>
-                    <td>${Number(row.qty).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td>${Number(row.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td class="text-primary fw-bold">${Number(row.total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                </tr>`;
-            });
-        })
-        .catch(err => {
-            console.error(err);
-            document.getElementById('dashboardTable').innerHTML = '<tr><td colspan="4" class="text-center text-danger">ไม่สามารถโหลดข้อมูลได้ หรือยังไม่ได้ตั้งค่า Web App URL</td></tr>';
+            btn.innerText = actionType === 'buy' ? "บันทึกซื้อน้ำมัน" : "บันทึกการเบิกน้ำมัน";
         });
     }
 
