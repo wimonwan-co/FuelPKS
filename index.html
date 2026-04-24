@@ -144,9 +144,10 @@
         fetch(`${scriptUrl}?type=dash`)
         .then(res => res.json())
         .then(data => {
-            // --- ส่วนที่ 1: เรียงลำดับโครงการตามที่กำหนด ---
+            // --- ส่วนที่ 1: ตารางโครงการ (Project Table) ---
             const myOrder = ["หนองเอื้อง", "โป่งลึก", "1645", "รถบริษัท", "ป้าหิ๋ม", "ส่วนตัว", "-"];
             
+            // เรียงลำดับโครงการ
             data.projects.sort((a, b) => {
                 let indexA = myOrder.indexOf(a.project);
                 let indexB = myOrder.indexOf(b.project);
@@ -158,44 +159,59 @@
             let pBody = document.getElementById('projectTable');
             pBody.innerHTML = '';
             data.projects.forEach(p => {
+                // จัดรูปแบบตัวเลข 2 ตำแหน่ง
+                let formattedQty = Number(p.qty || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                let formattedTotal = Number(p.total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
                 pBody.innerHTML += `<tr>
                     <td>${p.project}</td>
-                    <td>${Number(p.qty || 0).toLocaleString()}</td>
-                    <td class="text-success fw-bold">${Number(p.total || 0).toLocaleString()}</td>
+                    <td>${formattedQty}</td>
+                    <td class="text-success fw-bold">${formattedTotal}</td>
                 </tr>`;
             });
 
-            // --- ส่วนที่ 2: แสดงข้อมูลราย Lot (แก้ปัญหา NaN) ---
+            // --- ส่วนที่ 2: ตาราง Lot (Lot Table) ---
             let lBody = document.getElementById('lotTable');
             lBody.innerHTML = '';
             data.lots.forEach(l => {
                 let colorClass = l.balance <= 500 ? 'text-danger fw-bold' : '';
                 let statusBadge = l.balance > 0 ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">หมด</span>';
-                
-                // เช็คว่าราคาเป็นตัวเลขหรือไม่ ถ้าไม่เป็นให้ตั้งค่าเป็น "0.00" ป้องกัน NaN
-                let priceVal = (l.price && !isNaN(l.price)) ? Number(l.price).toFixed(2) : "0.00";
+    
+                let formattedBuyQty = Number(l.buyQty || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                let formattedBalance = Number(l.balance || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                let priceVal = (l.price && !isNaN(l.price)) 
+                    ? Number(l.price).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                    : "0.00";
 
                 lBody.innerHTML += `<tr>
                     <td><small>${l.lotId}</small></td>
-                    <td>${Number(l.buyQty || 0).toLocaleString()}</td>
-                    <td class="${colorClass}">${Number(l.balance || 0).toLocaleString()}</td>
+                    <td>${formattedBuyQty}</td>
+                    <td class="${colorClass}">${formattedBalance}</td>
                     <td>${priceVal}</td>
                     <td>${statusBadge}</td>
                 </tr>`;
             });
-        }).catch(err => console.error(err));
+        }).catch(err => {
+            console.error(err);
+            document.getElementById('projectTable').innerHTML = '<tr><td colspan="3" class="text-center text-danger">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+        });
     }
-
     function submitData(actionType) {
         let payload = { action: actionType };
+        
         if (actionType === 'buy') {
             payload.lotId = document.getElementById('b_lotId').value;
-            payload.date = document.getElementById('b_date').value;
+            // แก้ไข: ตรวจสอบวันที่ ถ้าไม่เลือกให้ใช้วันที่ปัจจุบัน
+            let bDate = document.getElementById('b_date').value;
+            payload.date = bDate ? new Date(bDate) : new Date(); 
+            
             payload.qty = document.getElementById('b_qty').value;
             payload.price = document.getElementById('b_price').value;
             if(!payload.qty || !payload.price) return alert('กรุณากรอกข้อมูลให้ครบ');
         } else {
-            payload.date = document.getElementById('w_date').value;
+            // แก้ไข: ตรวจสอบวันที่ ถ้าไม่เลือกให้ใช้วันที่ปัจจุบัน
+            let wDate = document.getElementById('w_date').value;
+            payload.date = wDate ? new Date(wDate) : new Date();
             payload.item = document.getElementById('w_item').value;
             payload.project = document.getElementById('w_project').value;
             payload.qty = document.getElementById('w_qty').value;
